@@ -119,10 +119,10 @@ def transfer_data_list(data_list):
 
 
 def get_document_url(legal_id):
-    base_url = f'https://wb.flk.npc.gov.cn'
+    base_url = f'https://flk.npc.gov.cn'
     headers = {
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-                      "Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) "
+                      "Version/17.4 Safari/605.1.15",
         "Accept": "application/json, text/javascript, */*; q=0.01",
         "Accept-Encoding": "gzip, deflate, br, zstd",
         "Connection": "keep-alive",
@@ -145,10 +145,10 @@ def get_document_url(legal_id):
             print("错误详情: ", str(e))
             count += 1
             time.sleep(1)
-    if count == 3:
-        raise ConnectionError(f"连接{base_url}/api/detail失败，有可能是IP被封，请更新IP尝试")
+    if count > 3:
+        raise Exception(f"连接{base_url}/api/detail失败，有可能是IP被封，请更新IP尝试")
     doc_name = res['result']['body'][0]['path']
-    return f'{base_url}{doc_name}'
+    return doc_name
 
 
 def download_source(type_num):
@@ -162,22 +162,20 @@ def download_source(type_num):
     rows = cursor.fetchall()
     for row in rows:
         legal_id, legal_title, saved = row
-        update_sql = f'UPDATE {table_name} SET saved = 1 WHERE id = {legal_id}'
+        update_sql = f"UPDATE {table_name} SET saved = 1 WHERE id = '{legal_id}'"
         if saved == 1:
             continue
-        if os.path.exists(f'download/{table_name}/{legal_title}.*'):
-            cursor.execute(update_sql)
-            connect.commit()
-            print(f"file {legal_title} exist, save result to database success")
-            continue
-        doc_url = get_document_url(legal_id)
+        doc_url = f"https://wb.flk.npc.gov.cn{get_document_url(legal_id)}"
         file_extension = os.path.splitext(doc_url)[1]
         response = requests.get(doc_url)
-        with open(f'download/{table_name}/{legal_title}.{file_extension}', 'wb') as f:
+        with open(f'download/{table_name}/{legal_title}{file_extension}', 'wb') as f:
             f.write(response.content)
         cursor.execute(update_sql)
         connect.commit()
         print(f"file {legal_title} saved, save result to database success")
+    cursor.close()
+    connect.close()
+    print("download finished")
 
 
 def law_crawler(type_num: int, download_flag: bool, begin_page: int, end_page: int):
