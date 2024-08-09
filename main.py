@@ -22,6 +22,8 @@ def usage():
     print("\t\t\t\t5: sfjs(司法解释)")
     print("\t\t\t\t6: dfxfg(地方性法规)")
     print("--download\t\t下载到项目download文件夹")
+    print("--begin\t\t爬取的开始页，默认第一页")
+    print("--end\t\t爬取的结束页，默认最后一页")
 
 
 def get_type_cn_prefix(type_num):
@@ -86,13 +88,13 @@ def send_msg(base_url, page):
     raise ConnectionError(f"连接{url}失败，有可能是IP被封，请更新IP尝试")
 
 
-def crawl_all(download_flag):
-    law_crawler(1, download_flag)
-    law_crawler(2, download_flag)
-    law_crawler(3, download_flag)
-    law_crawler(4, download_flag)
-    law_crawler(5, download_flag)
-    law_crawler(6, download_flag)
+def crawl_all(download_flag, begin_page, end_page):
+    law_crawler(1, download_flag, begin_page, end_page)
+    law_crawler(2, download_flag, begin_page, end_page)
+    law_crawler(3, download_flag, begin_page, end_page)
+    law_crawler(4, download_flag, begin_page, end_page)
+    law_crawler(5, download_flag, begin_page, end_page)
+    law_crawler(6, download_flag, begin_page, end_page)
 
 
 def crawl_xf(download_flag):
@@ -115,9 +117,9 @@ def transfer_data_list(data_list):
     return res
 
 
-def law_crawler(type_num: int, download_flag: bool):
+def law_crawler(type_num: int, download_flag: bool, begin_page: int, end_page: int):
     if type_num == 0:  # all
-        crawl_all(download_flag)
+        crawl_all(download_flag, begin_page, end_page)
         return
     if type_num == 1:  # 宪法
         crawl_xf(download_flag)
@@ -125,11 +127,13 @@ def law_crawler(type_num: int, download_flag: bool):
     # 其他
     base_url = get_base_url(type_num)
     res0 = send_msg(base_url, 1)
-    total_num = int(res0['result']['totalSizes'])
-    page_num = total_num // 10 if total_num % 10 == 0 else total_num // 10 + 1
-    print(f"{get_type_cn(type_num)}共{page_num}页")
+    total_count = int(res0['result']['totalSizes'])
+    page_count = total_count // 10 if total_count % 10 == 0 else total_count // 10 + 1
+    print(f"{get_type_cn(type_num)}共{page_count}页")
     data_list = []
-    for i in range(1, page_num + 1):
+    r1 = begin_page if begin_page != -1 else 1
+    r2 = end_page + 1 if end_page != -1 and end_page < page_count else page_count + 1
+    for i in range(r1, r2):
         res = send_msg(base_url, i)
         data_list.extend(res['result']['data'])
         print(f"{get_type_cn(type_num)}第{i}页成功, sleep一秒")
@@ -138,7 +142,8 @@ def law_crawler(type_num: int, download_flag: bool):
     print("crawl success")
     connect = sqlite3.connect('data/database.db')
     cursor = connect.cursor()
-    sql = f'INSERT INTO {get_type_cn_prefix(type_num)} VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    # 已存在的项忽略
+    sql = f'INSERT OR IGNORE INTO {get_type_cn_prefix(type_num)} VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
     # 多次插入
     cursor.executemany(sql, new_data_list)
     connect.commit()
@@ -150,7 +155,9 @@ def law_crawler(type_num: int, download_flag: bool):
 if __name__ == '__main__':
     download = False
     crawl_type = -1
-    opts, args = getopt.getopt(sys.argv[1:], "ht:", ["help", "type=", "download", "begin", "end"])
+    begin = -1
+    end = -1
+    opts, args = getopt.getopt(sys.argv[1:], "ht:", ["help", "type=", "download", "begin=", "end="])
     if len(opts) == 0:
         raise ValueError("参数错误，使用-h或--help查看帮助")
     for opt_name, opt_value in opts:
@@ -165,6 +172,11 @@ if __name__ == '__main__':
                 raise TypeError("错误的type类型，使用-h或--help查看帮助")
             crawl_type = int(opt_value)
             continue
+        if opt_name in "--begin":
+            begin = int(opt_value)
+            continue
+        if opt_name in "--end":
+            end = int(opt_value)
     if crawl_type == -1:
         raise Exception("type为空，使用-h或--help查看帮助")
-    law_crawler(crawl_type, download)
+    law_crawler(crawl_type, download, begin, end)
