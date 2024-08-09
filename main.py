@@ -21,6 +21,7 @@ def usage():
     print("\t\t\t\t4: jcfg(监察法规)")
     print("\t\t\t\t5: sfjs(司法解释)")
     print("\t\t\t\t6: dfxfg(地方性法规)")
+    print("--download\t\t下载到项目download文件夹")
 
 
 def get_type_cn_prefix(type_num):
@@ -130,7 +131,7 @@ def law_crawler(type_num: int, download_flag: bool):
     data_list = []
     for i in range(1, page_num + 1):
         res = send_msg(base_url, i)
-        data_list.append(res['result']['data'])
+        data_list.extend(res['result']['data'])
         print(f"{get_type_cn(type_num)}第{i}页成功, sleep一秒")
         time.sleep(1)
     new_data_list = transfer_data_list(data_list)
@@ -149,18 +150,21 @@ def law_crawler(type_num: int, download_flag: bool):
 if __name__ == '__main__':
     download = False
     crawl_type = -1
-    opts, args = getopt.getopt(sys.argv[1:], "ht:", ["help", "type=", "download"])
+    opts, args = getopt.getopt(sys.argv[1:], "ht:", ["help", "type=", "download", "begin", "end"])
     if len(opts) == 0:
         raise ValueError("参数错误，使用-h或--help查看帮助")
     for opt_name, opt_value in opts:
         if opt_name in ("-h", "--help"):
             usage()
             exit(0)
+        if opt_name in "--download":
+            download = True
+            continue
         if opt_name in ("-t", "--type"):
             if not opt_value.isdigit() or opt_value not in ["0", "1", "2", "3", "4", "5", "6"]:
                 raise TypeError("错误的type类型，使用-h或--help查看帮助")
             crawl_type = int(opt_value)
             continue
-        if opt_name in "--download":
-            download = True
+    if crawl_type == -1:
+        raise Exception("type为空，使用-h或--help查看帮助")
     law_crawler(crawl_type, download)
