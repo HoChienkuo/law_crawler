@@ -16,7 +16,7 @@ def usage():
     print("-h, --help\t\t\t展示帮助并退出函数")
     print("-t, --type\t\t\t选择要爬取的法律类型,使用方法 python main.py --type 0")
     print("\t\t\t\t\t0: 以下全部")
-    print("\t\t\t\t\t1: xf(宪法)")
+    print("\t\t\t\t\t1: xffl(宪法)")
     print("\t\t\t\t\t2: flfg(法律法规)")
     print("\t\t\t\t\t3: xzfg(行政法规)")
     print("\t\t\t\t\t4: jcfg(监察法规)")
@@ -30,7 +30,7 @@ def usage():
 def get_type_cn_prefix(type_num):
     match type_num:
         case 1:
-            return 'xf'  # 宪法
+            return 'xffl'  # 宪法
         case 2:
             return "flfg"  # 法律法规
         case 3:
@@ -96,11 +96,6 @@ def crawl_all(download_flag, begin_page, end_page):
     law_crawler(4, download_flag, begin_page, end_page)
     law_crawler(5, download_flag, begin_page, end_page)
     law_crawler(6, download_flag, begin_page, end_page)
-
-
-def crawl_xf(download_flag):
-    # todo 宪法爬取并保存数据库
-    print("save result to database success")
 
 
 def transfer_data_list(data_list):
@@ -181,9 +176,6 @@ def download_source(type_num):
 def law_crawler(type_num: int, download_flag: bool, begin_page: int, end_page: int):
     if type_num == 0:  # all
         crawl_all(download_flag, begin_page, end_page)
-        return
-    if type_num == 1:  # 宪法
-        crawl_xf(download_flag)
         return
     # 其他
     base_url = get_base_url(type_num)

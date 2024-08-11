@@ -17,10 +17,10 @@ table_form = ("id VARCHAR(64) PRIMARY KEY NOT NULL,"
               "expiry VARCHAR(32) NOT NULL,"
               "saved TINYINT default 0"
               "")
-# 创建宪法表
-sql_create_xf_table = ("CREATE TABLE IF NOT EXISTS xf("
-                       f"{table_form}"
-                       ")")
+# 创建宪法法律表
+sql_create_xffl_table = ("CREATE TABLE IF NOT EXISTS xffl("
+                         f"{table_form}"
+                         ")")
 # 创建法律法规表
 sql_create_flfg_table = ("CREATE TABLE IF NOT EXISTS flfg("
                          f"{table_form}"
@@ -47,7 +47,7 @@ def database_init():
     connect = sqlite3.connect('data/database.db')
     cursor = connect.cursor()
     cursor.execute(sql_create_info_table)
-    cursor.execute(sql_create_xf_table)
+    cursor.execute(sql_create_xffl_table)
     cursor.execute(sql_create_flfg_table)
     cursor.execute(sql_create_xzfg_table)
     cursor.execute(sql_create_jcfg_table)
