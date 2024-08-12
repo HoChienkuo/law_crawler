@@ -1,3 +1,4 @@
+import os
 import sqlite3
 
 # 创建info表
@@ -44,7 +45,9 @@ sql_create_dfxfg_table = ("CREATE TABLE IF NOT EXISTS dfxfg("
 
 
 def database_init():
-    connect = sqlite3.connect('data/database.db')
+    if not os.path.isdir("data"):
+        os.mkdir("data")
+    connect = sqlite3.connect(r'data/database.db')
     cursor = connect.cursor()
     cursor.execute(sql_create_info_table)
     cursor.execute(sql_create_xffl_table)
