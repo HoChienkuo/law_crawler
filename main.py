@@ -149,7 +149,7 @@ def get_document_url(legal_id):
 def download_source(type_num):
     table_name = get_type_cn_prefix(type_num)
     if not os.path.isdir(f'download/{table_name}'):
-        os.mkdir(f'download/{table_name}')
+        os.makedirs(f'download/{table_name}')
     connect = sqlite3.connect('data/database.db')
     cursor = connect.cursor()
     sql = f'SELECT id, title, saved FROM {table_name}'
