@@ -157,6 +157,7 @@ def download_source(type_num, sleep_time):
     sql = f'SELECT id, title FROM {table_name} WHERE saved = 0'
     cursor.execute(sql)
     rows = cursor.fetchall()
+    requests.packages.urllib3.disable_warnings()
     for row in rows:
         legal_id, legal_title = row
         update_sql = f"UPDATE {table_name} SET saved = 1 WHERE id = '{legal_id}'"
@@ -169,7 +170,7 @@ def download_source(type_num, sleep_time):
         count = 1
         while count <=3:
             try:
-                response = requests.get(doc_url)
+                response = requests.get(doc_url, verify=False)
                 with open(f'download/{table_name}/{legal_title}{file_extension}', 'wb') as f:
                     f.write(response.content)
                 break
