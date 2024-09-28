@@ -163,12 +163,15 @@ def download_source(type_num, sleep_time):
         update_sql = f"UPDATE {table_name} SET saved = 1 WHERE id = '{legal_id}'"
         doc_url = f"https://wb.flk.npc.gov.cn{get_document_url(legal_id, sleep_time)}"
         file_extension = os.path.splitext(doc_url)[1]
+        if file_extension == '.cnNone':
+            # 域名 wb.flk.npc.gov.cnnone 可能已经被 DNS 污染，如果域名为本机域名，请解析为非回环 IP。
+            continue
         if os.path.isfile(f'download/{table_name}/{legal_title}{file_extension}'):
             cursor.execute(update_sql)
             connect.commit()
             continue
         count = 0
-        while count <=3:
+        while count <= 3:
             try:
                 response = requests.get(doc_url, verify=False)
                 with open(f'download/{table_name}/{legal_title}{file_extension}', 'wb') as f:
@@ -224,15 +227,50 @@ def law_crawler(type_num: int, download_flag: bool, begin_page: int, end_page: i
         download_source(type_num, sleep_time)
 
 
+def check_db(type_num, sleep_time):
+    if type_num == 0:
+        check_db0(type_num, sleep_time)
+        quit(0)
+    table_name = get_type_cn_prefix(type_num)
+    connect = sqlite3.connect('data/database.db')
+    cursor = connect.cursor()
+    sql = f'SELECT id, title FROM {table_name}'
+    cursor.execute(sql)
+    rows = cursor.fetchall()
+    for num, row in enumerate(rows):
+        legal_id, legal_title = row
+        if os.path.isfile(f'download/{table_name}/{legal_title}.cnNone'):
+            os.remove(f'download/{table_name}/{legal_title}.cnNone')
+        if os.path.isfile(f'download/{table_name}/{legal_title}.docx') or os.path.isfile(
+                f'download/{table_name}/{legal_title}.pdf'):
+            continue
+        print(f'{legal_title} does not exist')
+        update_sql = f"UPDATE {table_name} SET saved = 0 where id = '{legal_id}'"
+        cursor.execute(update_sql)
+    connect.commit()
+    cursor.close()
+    connect.close()
+
+
+def check_db0(type_num, sleep_time):
+    check_db0(1, sleep_time)
+    check_db0(2, sleep_time)
+    check_db0(3, sleep_time)
+    check_db0(4, sleep_time)
+    check_db0(5, sleep_time)
+    check_db0(6, sleep_time)
+
+
 if __name__ == '__main__':
     download = False
     only_download = False
+    check = False
     crawl_type = -1
     begin = -1
     end = -1
     sleep = 3
     opts, args = getopt.getopt(sys.argv[1:], "ht:ds:",
-                               ["help", "type=", "download", "begin=", "end=", "only-download", "sleep="])
+                               ["help", "type=", "download", "begin=", "end=", "only-download", "sleep=", "check"])
     if len(opts) == 0:
         raise ValueError("参数错误，使用-h或--help查看帮助")
     for opt_name, opt_value in opts:
@@ -256,10 +294,15 @@ if __name__ == '__main__':
         if opt_name in "--only-download":
             only_download = True
             continue
+        if opt_name in "--check":
+            check = True
         if opt_name in ("-s", "--sleep"):
             sleep = int(opt_value)
     if crawl_type == -1:
         raise Exception("type为空，使用-h或--help查看帮助")
+    if check:
+        check_db(crawl_type, sleep)
+        quit(0)
     if only_download:
         download_source(crawl_type, sleep)
         quit(0)
