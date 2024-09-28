@@ -76,7 +76,7 @@ def send_msg(base_url, page, sleep_time):
         "Accept-Language": "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2",
         "Connection": "keep-alive"
     }
-    count = 1
+    count = 0
     while count <= 3:
         try:
             response = requests.get(url, headers=headers)
@@ -84,7 +84,7 @@ def send_msg(base_url, page, sleep_time):
             response.encoding = 'utf-8'
             return json.loads(response.text)
         except Exception as e:
-            print(f"请求接口{url}错误，第{count}次请求，将重试三次")
+            print(f"请求接口{url}错误，第{count + 1}次请求，将重试三次，剩余重试次数{3 - count}")
             print("错误详情: ", str(e))
             count += 1
             time.sleep(sleep_time * count)
@@ -128,7 +128,7 @@ def get_document_url(legal_id, sleep_time):
     body = {
         "id": legal_id
     }
-    count = 1
+    count = 0
     res = {}
     while count <= 3:
         try:
@@ -138,7 +138,7 @@ def get_document_url(legal_id, sleep_time):
             res = json.loads(response.text)
             break
         except Exception as e:
-            print(f"请求接口{base_url}/api/detail错误，第{count}次请求，将重试三次")
+            print(f"请求接口{base_url}/api/detail错误，第{count + 1}次请求，将重试三次，剩余重试次数{3 - count}")
             print("错误详情: ", str(e))
             count += 1
             time.sleep(sleep_time * count)
@@ -167,7 +167,7 @@ def download_source(type_num, sleep_time):
             cursor.execute(update_sql)
             connect.commit()
             continue
-        count = 1
+        count = 0
         while count <=3:
             try:
                 response = requests.get(doc_url, verify=False)
@@ -175,7 +175,7 @@ def download_source(type_num, sleep_time):
                     f.write(response.content)
                 break
             except Exception as e:
-                print(f"请求接口{doc_url}错误，第{count}次请求，将重试三次")
+                print(f"请求接口{doc_url}错误，第{count + 1}次请求，将重试三次，剩余重试次数{3 - count}")
                 print("错误详情: ", str(e))
                 count += 1
                 time.sleep(sleep_time * count)
@@ -262,4 +262,5 @@ if __name__ == '__main__':
         raise Exception("type为空，使用-h或--help查看帮助")
     if only_download:
         download_source(crawl_type, sleep)
+        quit(0)
     law_crawler(crawl_type, download, begin, end, sleep)
