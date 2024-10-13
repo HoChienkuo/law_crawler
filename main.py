@@ -253,12 +253,12 @@ def check_db(type_num, sleep_time):
 
 
 def check_db0(type_num, sleep_time):
-    check_db0(1, sleep_time)
-    check_db0(2, sleep_time)
-    check_db0(3, sleep_time)
-    check_db0(4, sleep_time)
-    check_db0(5, sleep_time)
-    check_db0(6, sleep_time)
+    check_db(1, sleep_time)
+    check_db(2, sleep_time)
+    check_db(3, sleep_time)
+    check_db(4, sleep_time)
+    check_db(5, sleep_time)
+    check_db(6, sleep_time)
 
 
 if __name__ == '__main__':
