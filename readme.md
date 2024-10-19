@@ -21,18 +21,17 @@ law_crawler 是用于爬取[国家法律法规数据库](https://flk.npc.gov.cn/
 ```
 
 ---
-## 如何使用
-1. 克隆或下载本项目到您的本地环境
-    ```
-    git clone https://github.com/HoChienkuo/law_crawler.git
-    ```
+## 直接使用
+1. 点击右侧Releases下载最新包至本地并解压
+
+
 2. 安装依赖项(pip命令参考，如使用其他包管理自行修改)
     ```
     pip install -r requirements.txt
     ```
 3. run ```python init.py``` 初始化数据库<br/><br/>
-
-4. run ```python main.py --type number --download```爬取对应文档<br/>
+数据库主要是存放法律法规文档信息，方便二次直接下载<br/><br/>
+4. run ```python main.py --type number --download```爬取对应文档<br/><br/>
 参数参考:<br/>
 -h, --help 展示帮助并退出函数<br/>
 -t, --type 选择要爬取的法律类型<br/>
@@ -44,9 +43,20 @@ law_crawler 是用于爬取[国家法律法规数据库](https://flk.npc.gov.cn/
 5: sfjs(司法解释)
 6: dfxfg(地方性法规)<br/>
 -d,  --download  下载到项目download文件夹<br/>
+--only-download  配合--type(必选)选择的法律类型，仅追加下载未下载的文件到项目download文件夹<br/>
+-s,  --sleep 遇到网站限流时的睡眠时间，单位为秒，默认1秒<br/>
 --begin 爬取的开始页，默认第一页<br/>
 --end   爬取的结束页，默认最后一页<br/>
-
+---
+## 项目构建
+1. 克隆或下载本项目到您的本地环境
+    ```
+    git clone https://github.com/HoChienkuo/law_crawler.git
+    ```
+2. 安装依赖项(pip命令参考，如使用其他包管理自行修改)
+    ```
+    pip install -r requirements.txt
+    ```
 ---
 ## 协议
 本仓库的代码依照 [Apache-2.0](LICENSE) 协议开源
