@@ -43,6 +43,7 @@ law_crawler 是用于爬取[国家法律法规数据库](https://flk.npc.gov.cn/
 5: sfjs(司法解释)
 6: dfxfg(地方性法规)<br/>
 -d,  --download  下载到项目download文件夹<br/>
+--word           优先下载word版本，没有word版本下载pdf<br/>
 --only-download  配合--type(必选)选择的法律类型，仅追加下载未下载的文件到项目download文件夹<br/>
 -s,  --sleep 遇到网站限流时的睡眠时间，单位为秒，默认1秒<br/>
 --begin 爬取的开始页，默认第一页<br/>

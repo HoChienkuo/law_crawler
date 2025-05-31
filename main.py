@@ -24,6 +24,7 @@ def usage():
     print("\t\t\t\t\t6: dfxfg(地方性法规)")
     print("--only-download\t\t配合-t\\--type(必选)选择的法律类型，仅追加下载未下载的文件到项目download文件夹")
     print("-d,  --download\t\t配合-t\\--type(必选)选择的法律类型，下载到项目download文件夹")
+    print("-word\t\t\t\t优先下载word版本，没有word版本下载pdf")
     print("-s,  --sleep\t\t遇到网站限流时的睡眠时间，单位为秒，默认1秒")
     print("--begin\t\t\t\t爬取的开始页，默认第一页")
     print("--end\t\t\t\t爬取的结束页，默认最后一页")
@@ -91,13 +92,13 @@ def send_msg(base_url, page, sleep_time):
     raise ConnectionError(f"连接{url}失败，有可能是IP被封，请更新IP尝试")
 
 
-def crawl_all(download_flag, begin_page, end_page, sleep_time):
-    law_crawler(1, download_flag, begin_page, end_page, sleep_time)
-    law_crawler(2, download_flag, begin_page, end_page, sleep_time)
-    law_crawler(3, download_flag, begin_page, end_page, sleep_time)
-    law_crawler(4, download_flag, begin_page, end_page, sleep_time)
-    law_crawler(5, download_flag, begin_page, end_page, sleep_time)
-    law_crawler(6, download_flag, begin_page, end_page, sleep_time)
+def crawl_all(download_flag, begin_page, end_page, sleep_time, download_word):
+    law_crawler(1, download_flag, begin_page, end_page, sleep_time, download_word)
+    law_crawler(2, download_flag, begin_page, end_page, sleep_time, download_word)
+    law_crawler(3, download_flag, begin_page, end_page, sleep_time, download_word)
+    law_crawler(4, download_flag, begin_page, end_page, sleep_time, download_word)
+    law_crawler(5, download_flag, begin_page, end_page, sleep_time, download_word)
+    law_crawler(6, download_flag, begin_page, end_page, sleep_time, download_word)
 
 
 def transfer_data_list(data_list):
@@ -115,7 +116,7 @@ def transfer_data_list(data_list):
     return res
 
 
-def get_document_url(legal_id, sleep_time):
+def get_document_url(legal_id, sleep_time, download_word):
     base_url = f'https://flk.npc.gov.cn'
     headers = {
         "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) "
@@ -144,11 +145,19 @@ def get_document_url(legal_id, sleep_time):
             time.sleep(sleep_time * count)
     if count > 3:
         raise Exception(f"连接{base_url}/api/detail失败，有可能是IP被封，请更新IP尝试")
-    doc_name = res['result']['body'][0]['path']
+    body = res['result']['body']
+    doc_name = body[0]['path']
+    if not download_word:
+        return doc_name
+    for i, item in enumerate(body):
+        if item['type'] == "PDF":
+            continue
+        if item['type'] == "WORD":
+            return item['path']
     return doc_name
 
 
-def download_source(type_num, sleep_time):
+def download_source(type_num, sleep_time, download_word):
     table_name = get_type_cn_prefix(type_num)
     if not os.path.isdir(f'download/{table_name}'):
         os.makedirs(f'download/{table_name}')
@@ -161,7 +170,7 @@ def download_source(type_num, sleep_time):
     for row in rows:
         legal_id, legal_title = row
         update_sql = f"UPDATE {table_name} SET saved = 1 WHERE id = '{legal_id}'"
-        doc_url = f"https://wb.flk.npc.gov.cn{get_document_url(legal_id, sleep_time)}"
+        doc_url = f"https://wb.flk.npc.gov.cn{get_document_url(legal_id, sleep_time, download_word)}"
         file_extension = os.path.splitext(doc_url)[1]
         if file_extension == '.cnNone':
             # 域名 wb.flk.npc.gov.cnnone 可能已经被 DNS 污染，如果域名为本机域名，请解析为非回环 IP。
@@ -193,9 +202,10 @@ def download_source(type_num, sleep_time):
     print("download finished")
 
 
-def law_crawler(type_num: int, download_flag: bool, begin_page: int, end_page: int, sleep_time: int):
+def law_crawler(type_num: int, download_flag: bool, begin_page: int, end_page: int, sleep_time: int,
+                download_word: bool):
     if type_num == 0:  # all
-        crawl_all(download_flag, begin_page, end_page, sleep_time)
+        crawl_all(download_flag, begin_page, end_page, sleep_time, download_word)
         return
     # 其他
     base_url = get_base_url(type_num)
@@ -224,12 +234,12 @@ def law_crawler(type_num: int, download_flag: bool, begin_page: int, end_page: i
     connect.close()
     print("save result to database success")
     if download_flag:
-        download_source(type_num, sleep_time)
+        download_source(type_num, sleep_time, download_word)
 
 
 def check_db(type_num, sleep_time):
     if type_num == 0:
-        check_db0(type_num, sleep_time)
+        check_db0(sleep_time)
         quit(0)
     table_name = get_type_cn_prefix(type_num)
     connect = sqlite3.connect('data/database.db')
@@ -252,7 +262,7 @@ def check_db(type_num, sleep_time):
     connect.close()
 
 
-def check_db0(type_num, sleep_time):
+def check_db0(sleep_time):
     check_db(1, sleep_time)
     check_db(2, sleep_time)
     check_db(3, sleep_time)
@@ -269,8 +279,10 @@ if __name__ == '__main__':
     begin = -1
     end = -1
     sleep = 3
+    word = False
     opts, args = getopt.getopt(sys.argv[1:], "ht:ds:",
-                               ["help", "type=", "download", "begin=", "end=", "only-download", "sleep=", "check"])
+                               ["help", "type=", "download", "begin=", "end=", "only-download", "sleep=", "check",
+                                "word"])
     if len(opts) == 0:
         raise ValueError("参数错误，使用-h或--help查看帮助")
     for opt_name, opt_value in opts:
@@ -296,14 +308,18 @@ if __name__ == '__main__':
             continue
         if opt_name in "--check":
             check = True
+            continue
         if opt_name in ("-s", "--sleep"):
             sleep = int(opt_value)
+            continue
+        if opt_name in "word":
+            word = True
     if crawl_type == -1:
         raise Exception("type为空，使用-h或--help查看帮助")
     if check:
         check_db(crawl_type, sleep)
         quit(0)
     if only_download:
-        download_source(crawl_type, sleep)
+        download_source(crawl_type, sleep, word)
         quit(0)
-    law_crawler(crawl_type, download, begin, end, sleep)
+    law_crawler(crawl_type, download, begin, end, sleep, word)
