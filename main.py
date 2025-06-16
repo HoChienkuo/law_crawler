@@ -25,6 +25,7 @@ def usage():
     print("\t\t\t\t\t------------------")
     print(
         "\t\t\t\t\t7: 自定义文件列表，配合--file参数指定文件列表.txt位置，使用换行分隔，使用方法 python main.py --type 7 --file example.txt")
+    print("-file\t\t\t\t配合--type 7 指定文件列表.txt位置，使用换行分隔")
     print("--only-download\t\t配合-t\\--type(必选)选择的法律类型，仅追加下载未下载的文件到项目download文件夹")
     print("-d,  --download\t\t配合-t\\--type(必选)选择的法律类型，下载到项目download文件夹")
     print("-word\t\t\t\t优先下载word版本，没有word版本下载pdf")
