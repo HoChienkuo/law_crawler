@@ -41,7 +41,8 @@ law_crawler 是用于爬取[国家法律法规数据库](https://flk.npc.gov.cn/
 3: xzfg(行政法规)
 4: jcfg(监察法规)
 5: sfjs(司法解释)
-6: dfxfg(地方性法规)<br/>
+6: dfxfg(地方性法规)
+7: 自定义文件列表，配合--file参数指定文件列表.txt位置，使用换行分隔，使用方法 python main.py --type 7 --file example.txt<br/>
 -d,  --download  下载到项目download文件夹<br/>
 --word           优先下载word版本，没有word版本下载pdf<br/>
 --only-download  配合--type(必选)选择的法律类型，仅追加下载未下载的文件到项目download文件夹<br/>

@@ -22,6 +22,9 @@ def usage():
     print("\t\t\t\t\t4: jcfg(监察法规)")
     print("\t\t\t\t\t5: sfjs(司法解释)")
     print("\t\t\t\t\t6: dfxfg(地方性法规)")
+    print("\t\t\t\t\t------------------")
+    print(
+        "\t\t\t\t\t7: 自定义文件列表，配合--file参数指定文件列表.txt位置，使用换行分隔，使用方法 python main.py --type 7 --file example.txt")
     print("--only-download\t\t配合-t\\--type(必选)选择的法律类型，仅追加下载未下载的文件到项目download文件夹")
     print("-d,  --download\t\t配合-t\\--type(必选)选择的法律类型，下载到项目download文件夹")
     print("-word\t\t\t\t优先下载word版本，没有word版本下载pdf")
@@ -44,6 +47,11 @@ def get_type_cn_prefix(type_num):
             return "sfjs"  # 司法解释
         case 6:
             return "dfxfg"  # 地方性法规
+        case 7:
+            return ""
+        case _:
+            print("<UNK>")
+            return None
 
 
 def get_type_cn(type_num):
@@ -60,6 +68,28 @@ def get_type_cn(type_num):
             return "司法解释"
         case 6:
             return "地方性法规"
+        case _:
+            print("<UNK>")
+            return None
+
+
+def get_type_by_cn_name(cn_name):
+    match cn_name:
+        case "宪法":
+            return 1
+        case "法律":
+            return 2
+        case "行政法规":
+            return 3
+        case "监察法规":
+            return 4
+        case "司法解释":
+            return 5
+        case "地方性法规":
+            return 6
+        case _:
+            print(f"error! {cn_name} does not exist!")
+            raise Exception
 
 
 def get_base_url(type_num):
@@ -271,6 +301,43 @@ def check_db0(sleep_time):
     check_db(6, sleep_time)
 
 
+def custom_crawler(path, download, sleep, word):
+    if not os.path.isfile(path):
+        raise Exception(f"file {path} does not exist")
+    lines = []
+    data_list = []
+    with open(path, 'r') as file:
+        lines = file.readlines()
+    for line in lines:
+        legal_json = search_legal(line, sleep)
+        data_list.append(legal_json)
+    new_data_list = transfer_data_list(data_list)
+    connect = sqlite3.connect('data/database.db')
+    cursor = connect.cursor()
+    for data in new_data_list:
+        table_name = get_type_cn_prefix(get_type_by_cn_name(data['type']))
+        sql = f"INSERT OR IGNORE INTO {table_name} VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)"
+        cursor.execute(sql, new_data_list)
+    connect.commit()
+    cursor.close()
+    connect.close()
+    if download:
+        pass
+        # TODO 如果下载
+
+
+def search_legal(search_legal_cn_name, sleep_time):
+    base_url = get_base_url(7)
+    base_url = base_url + "&fgbt=" + search_legal_cn_name
+    res0 = send_msg(base_url, 1, sleep_time)
+    total_sizes = int(res0['result']['totalSizes'])
+    if total_sizes == 0:
+        print(f"{search_legal_cn_name} does not exist, please confirm the legal name completely correct.")
+        return -1
+    print(f"查找到{res0['result']['data'][0]['title']}")
+    return res0['result']['data'][0]
+
+
 if __name__ == '__main__':
     download = False
     only_download = False
@@ -280,9 +347,10 @@ if __name__ == '__main__':
     end = -1
     sleep = 3
     word = False
+    file_path = None
     opts, args = getopt.getopt(sys.argv[1:], "ht:ds:",
                                ["help", "type=", "download", "begin=", "end=", "only-download", "sleep=", "check",
-                                "word"])
+                                "word", "file="])
     if len(opts) == 0:
         raise ValueError("参数错误，使用-h或--help查看帮助")
     for opt_name, opt_value in opts:
@@ -293,7 +361,7 @@ if __name__ == '__main__':
             download = True
             continue
         if opt_name in ("-t", "--type"):
-            if not opt_value.isdigit() or opt_value not in ["0", "1", "2", "3", "4", "5", "6"]:
+            if not opt_value.isdigit() or opt_value not in ["0", "1", "2", "3", "4", "5", "6", "7"]:
                 raise TypeError("错误的type类型，使用-h或--help查看帮助")
             crawl_type = int(opt_value)
             continue
@@ -305,6 +373,9 @@ if __name__ == '__main__':
             continue
         if opt_name in "--only-download":
             only_download = True
+            continue
+        if opt_name in "--file":
+            file_path = opt_value
             continue
         if opt_name in "--check":
             check = True
@@ -319,6 +390,10 @@ if __name__ == '__main__':
     if check:
         check_db(crawl_type, sleep)
         quit(0)
+    if crawl_type == 7:
+        if file_path is None:
+            raise Exception("需要--file指定文件列表，使用-h或--help查看帮助")
+        custom_crawler(file_path, download, sleep, word)
     if only_download:
         download_source(crawl_type, sleep, word)
         quit(0)
