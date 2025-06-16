@@ -301,24 +301,53 @@ def check_db0(sleep_time):
     check_db(6, sleep_time)
 
 
-def custom_crawler(path, download, sleep, word):
+def custom_crawler(path, _download, sleep_time, download_word):
     if not os.path.isfile(path):
         raise Exception(f"file {path} does not exist")
-    lines = []
     data_list = []
-    with open(path, 'r') as file:
+    with open(path, 'r', encoding='utf-8') as file:
         lines = file.readlines()
     for line in lines:
-        legal_json = search_legal(line, sleep)
-        data_list.append(legal_json)
+        legal_json = search_legal(line, sleep_time)
+        data_list= data_list + legal_json
     new_data_list = transfer_data_list(data_list)
     connect = sqlite3.connect('data/database.db')
     cursor = connect.cursor()
+    requests.packages.urllib3.disable_warnings()
     for data in new_data_list:
-        table_name = get_type_cn_prefix(get_type_by_cn_name(data['type']))
+        # data[5]是type, data[0]是id, data[1]是title
+        table_name = get_type_cn_prefix(get_type_by_cn_name(data[4]))
         sql = f"INSERT OR IGNORE INTO {table_name} VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)"
-        cursor.execute(sql, new_data_list)
-    connect.commit()
+        cursor.execute(sql, data)
+        connect.commit()
+        if not _download:
+            continue
+        if not os.path.isdir(f'download/{table_name}'):
+            os.makedirs(f'download/{table_name}')
+        doc_url = f"https://wb.flk.npc.gov.cn{get_document_url(data[0], sleep, download_word)}"
+        file_extension = os.path.splitext(doc_url)[1]
+        if file_extension == '.cnNone':
+            # 域名 wb.flk.npc.gov.cnnone 可能已经被 DNS 污染，如果域名为本机域名，请解析为非回环 IP。
+            continue
+        count = 0
+        while count <= 3:
+            try:
+                response = requests.get(doc_url, verify=False)
+                with open(f'download/{table_name}/{data[1]}{file_extension}', 'wb') as f:
+                    f.write(response.content)
+                break
+            except Exception as e:
+                print(f"请求接口{doc_url}错误，第{count + 1}次请求，将重试三次，剩余重试次数{3 - count}")
+                print("错误详情: ", str(e))
+                count += 1
+                time.sleep(sleep_time * count)
+        if count > 3:
+            raise Exception(f"连接{doc_url}失败，有可能是IP被封，请更新IP尝试")
+        update_sql = f"UPDATE {table_name} SET saved = 1 WHERE id = '{data[0]}'"
+        cursor.execute(update_sql)
+        connect.commit()
+        print(f"file {data[1]} saved, save result to database success")
+        time.sleep(sleep_time)
     cursor.close()
     connect.close()
     if download:
@@ -327,15 +356,21 @@ def custom_crawler(path, download, sleep, word):
 
 
 def search_legal(search_legal_cn_name, sleep_time):
+    res_list = []
     base_url = get_base_url(7)
     base_url = base_url + "&fgbt=" + search_legal_cn_name
     res0 = send_msg(base_url, 1, sleep_time)
     total_sizes = int(res0['result']['totalSizes'])
     if total_sizes == 0:
         print(f"{search_legal_cn_name} does not exist, please confirm the legal name completely correct.")
-        return -1
-    print(f"查找到{res0['result']['data'][0]['title']}")
-    return res0['result']['data'][0]
+        return []
+    for i, item in enumerate(res0['result']['data']):
+        print(f"find {item['title']} !")
+        if search_legal_cn_name in item['title']:
+            res_list.append(item)
+            continue
+        print(f"exclude {item['title']}!")
+    return res_list
 
 
 if __name__ == '__main__':
@@ -394,6 +429,7 @@ if __name__ == '__main__':
         if file_path is None:
             raise Exception("需要--file指定文件列表，使用-h或--help查看帮助")
         custom_crawler(file_path, download, sleep, word)
+        quit(0)
     if only_download:
         download_source(crawl_type, sleep, word)
         quit(0)
