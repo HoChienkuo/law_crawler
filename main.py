@@ -309,8 +309,9 @@ def custom_crawler(path, _download, sleep_time, download_word):
     with open(path, 'r', encoding='utf-8') as file:
         lines = file.readlines()
     for line in lines:
+        line = line.strip()
         legal_json = search_legal(line, sleep_time)
-        data_list= data_list + legal_json
+        data_list = data_list + legal_json
     new_data_list = transfer_data_list(data_list)
     connect = sqlite3.connect('data/database.db')
     cursor = connect.cursor()
